@@ -1,0 +1,15 @@
+{
+  "name": "vong-voice-echo",
+  "version": "1.0.0",
+  "description": "Nói gì nó nhại lại y chang bằng giọng tùy chỉnh",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
