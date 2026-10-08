@@ -1,1 +1,335 @@
 
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vọng – Nói gì nó nhại y chang</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef1f4; --panel:#ffffff; --ink:#14212b; --muted:#5d6b77;
+    --line:#d5dce2; --accent:#0f6b6b; --accent-ink:#ffffff; --signal:#f2b705; --danger:#b3392f;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#10181f; --panel:#18232c; --ink:#e8eef2; --muted:#94a3ae; --line:#2b3a46; --accent:#3cc3b4; --accent-ink:#06211f; --signal:#f2b705; --danger:#ff7a6e; }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:'Be Vietnam Pro',system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;min-height:100vh}
+  .wrap{max-width:880px;margin:0 auto;padding:28px 18px 60px;display:grid;gap:18px}
+  h1{font-size:clamp(34px,7vw,56px);font-weight:800;letter-spacing:-.03em;margin:0;line-height:1}
+  .sub{color:var(--muted);margin:6px 0 0}
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:22px;display:grid;gap:18px}
+  .mic-row{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .mic{width:92px;height:92px;border-radius:50%;border:0;cursor:pointer;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex:none;position:relative;transition:transform .15s}
+  .mic:active{transform:scale(.95)}
+  .mic svg{width:38px;height:38px}
+  .mic.on{background:var(--danger);color:#fff}
+  .mic.on::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:3px solid var(--danger);animation:ring 1.4s ease-out infinite}
+  .mic.speaking{background:var(--signal);color:#1b1500}
+  .mic.speaking::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:3px solid var(--signal);animation:ring 1s ease-out infinite}
+  @keyframes ring{from{transform:scale(.9);opacity:.9}to{transform:scale(1.25);opacity:0}}
+  @media (prefers-reduced-motion:reduce){.mic.on::after,.mic.speaking::after{animation:none}}
+  .status{font-weight:700;font-size:18px}
+  .live{color:var(--muted);min-height:1.5em;font-size:15px;margin-top:2px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+  label{display:grid;gap:6px;font-size:14px;font-weight:500}
+  label .val{float:right;color:var(--muted);font-weight:400;font-variant-numeric:tabular-nums}
+  select,textarea,input[type=text]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  :focus-visible{outline:3px solid var(--signal);outline-offset:2px}
+  .presets{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer}
+  .chip:hover{border-color:var(--accent)}
+  .chip[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .btn{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .row textarea{flex:1 1 260px;min-height:46px;resize:vertical}
+  .switch{display:flex;gap:10px;align-items:center;font-size:14px}
+  .switch input{width:18px;height:18px;accent-color:var(--accent)}
+  h2{font-size:16px;margin:0}
+  ul.hist{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  ul.hist li{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--panel)}
+  ul.hist span{overflow-wrap:anywhere}
+  .empty{color:var(--muted);font-size:14px}
+  .note{background:color-mix(in srgb,var(--signal) 22%,transparent);border:1px solid var(--signal);border-radius:12px;padding:10px 14px;font-size:14px}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>Vọng</h1>
+    <p class="sub">Bạn nói gì, nó nhắc lại y chang bằng giọng bạn chọn.</p>
+  </header>
+
+  <div id="unsupported" class="note hide"></div>
+
+  <section class="stage" aria-label="Điều khiển chính">
+    <div class="mic-row">
+      <button id="micBtn" class="mic" aria-label="Bật micro" title="Bật / tắt micro">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+      </button>
+      <div>
+        <div id="status" class="status">Đang tắt</div>
+        <div id="live" class="live" aria-live="polite">Nhấn micro rồi nói. Nói xong ngắt câu là nó đọc lại.</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <label>Ngôn ngữ bạn nói
+        <select id="lang">
+          <option value="vi-VN">Tiếng Việt</option>
+          <option value="en-US">English (US)</option>
+          <option value="en-GB">English (UK)</option>
+          <option value="ja-JP">日本語</option>
+          <option value="ko-KR">한국어</option>
+          <option value="zh-CN">中文</option>
+          <option value="fr-FR">Français</option>
+          <option value="de-DE">Deutsch</option>
+          <option value="es-ES">Español</option>
+        </select>
+      </label>
+      <label>Giọng đọc
+        <select id="voice"></select>
+      </label>
+    </div>
+
+    <div>
+      <div style="font-size:14px;font-weight:500;margin-bottom:8px">Kiểu giọng nhanh</div>
+      <div class="presets" id="presets"></div>
+    </div>
+
+    <div class="grid">
+      <label>Cao độ (pitch) <span class="val" id="pitchV"></span>
+        <input type="range" id="pitch" min="0" max="2" step="0.05" value="1"></label>
+      <label>Tốc độ <span class="val" id="rateV"></span>
+        <input type="range" id="rate" min="0.3" max="2" step="0.05" value="1"></label>
+      <label>Âm lượng <span class="val" id="volV"></span>
+        <input type="range" id="vol" min="0" max="1" step="0.05" value="1"></label>
+    </div>
+
+    <div class="switch">
+      <input type="checkbox" id="auto" checked>
+      <label for="auto" style="display:block">Tự động nhại lại ngay khi tôi nói xong</label>
+    </div>
+    <div class="note" id="echoNote">Mẹo: dùng tai nghe để micro không thu lại tiếng của chính nó. Khi nó đang đọc, micro sẽ tạm dừng rồi tự bật lại.</div>
+  </section>
+
+  <section class="stage" aria-label="Gõ chữ để đọc">
+    <h2>Hoặc gõ chữ để nó đọc</h2>
+    <div class="row">
+      <textarea id="typed" rows="2" placeholder="Gõ gì đó rồi nhấn Đọc"></textarea>
+      <button class="btn" id="speakTyped">Đọc</button>
+      <button class="btn ghost" id="stopBtn">Dừng đọc</button>
+    </div>
+  </section>
+
+  <section class="stage" aria-label="Lịch sử">
+    <div class="row" style="justify-content:space-between">
+      <h2>Những câu đã nói</h2>
+      <button class="btn ghost" id="clearBtn">Xóa lịch sử</button>
+    </div>
+    <ul class="hist" id="hist"></ul>
+    <div class="empty" id="empty">Chưa có câu nào.</div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const synth = window.speechSynthesis;
+
+  if (!SR || !synth) {
+    const n = $('unsupported');
+    n.classList.remove('hide');
+    n.textContent = 'Trình duyệt này không hỗ trợ nhận diện giọng nói. Hãy mở file bằng Chrome hoặc Edge trên máy tính hoặc Android.';
+  }
+
+  const el = {
+    mic:$('micBtn'), status:$('status'), live:$('live'), lang:$('lang'), voice:$('voice'),
+    pitch:$('pitch'), rate:$('rate'), vol:$('vol'), auto:$('auto'),
+    pitchV:$('pitchV'), rateV:$('rateV'), volV:$('volV'),
+    typed:$('typed'), hist:$('hist'), empty:$('empty'), presets:$('presets')
+  };
+
+  /* ---------- Cài đặt giọng ---------- */
+  const PRESETS = [
+    {name:'Bình thường', pitch:1,   rate:1},
+    {name:'Trầm như bác sĩ', pitch:0.4, rate:0.85},
+    {name:'Giọng sóc chuột', pitch:2,   rate:1.25},
+    {name:'Robot chậm',     pitch:0.1, rate:0.6},
+    {name:'Nói nhanh',      pitch:1.1, rate:1.8},
+  ];
+
+  const saved = JSON.parse(localStorage.getItem('vong-settings') || '{}');
+  if (saved.lang) el.lang.value = saved.lang;
+  ['pitch','rate','vol'].forEach(k => { if (saved[k] != null) el[k].value = saved[k]; });
+  if (saved.auto != null) el.auto.checked = saved.auto;
+
+  function persist(){
+    localStorage.setItem('vong-settings', JSON.stringify({
+      lang:el.lang.value, voice:el.voice.value, pitch:el.pitch.value,
+      rate:el.rate.value, vol:el.vol.value, auto:el.auto.checked
+    }));
+  }
+  function showValues(){
+    el.pitchV.textContent = (+el.pitch.value).toFixed(2);
+    el.rateV.textContent  = (+el.rate.value).toFixed(2) + '×';
+    el.volV.textContent   = Math.round(el.vol.value * 100) + '%';
+    document.querySelectorAll('.chip').forEach(c => {
+      const p = PRESETS[c.dataset.i];
+      c.setAttribute('aria-pressed', String(+el.pitch.value === p.pitch && +el.rate.value === p.rate));
+    });
+  }
+
+  PRESETS.forEach((p,i) => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.type = 'button'; b.dataset.i = i; b.textContent = p.name;
+    b.onclick = () => { el.pitch.value = p.pitch; el.rate.value = p.rate; showValues(); persist(); speak('Xin chào, đây là giọng ' + p.name.toLowerCase()); };
+    el.presets.appendChild(b);
+  });
+
+  ['pitch','rate','vol'].forEach(k => el[k].addEventListener('input', () => { showValues(); persist(); }));
+  el.auto.addEventListener('change', persist);
+
+  /* ---------- Danh sách giọng ---------- */
+  let voices = [];
+  function loadVoices(){
+    voices = synth.getVoices();
+    const lang = el.lang.value.split('-')[0];
+    const sorted = [...voices].sort((a,b) => {
+      const am = a.lang.toLowerCase().startsWith(lang) ? 0 : 1;
+      const bm = b.lang.toLowerCase().startsWith(lang) ? 0 : 1;
+      return am - bm || a.name.localeCompare(b.name);
+    });
+    const prev = el.voice.value || saved.voice;
+    el.voice.innerHTML = '';
+    sorted.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.voiceURI; o.textContent = `${v.name} (${v.lang})`;
+      el.voice.appendChild(o);
+    });
+    if (prev && sorted.some(v => v.voiceURI === prev)) el.voice.value = prev;
+  }
+  if (synth){ loadVoices(); synth.onvoiceschanged = loadVoices; }
+  el.voice.addEventListener('change', persist);
+  el.lang.addEventListener('change', () => {
+    loadVoices(); persist();
+    if (rec) rec.lang = el.lang.value;
+    if (listening){ restartRec(); }
+  });
+
+  /* ---------- Đọc ---------- */
+  let speaking = false;
+  function speak(text){
+    if (!synth || !text.trim()) return;
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const v = voices.find(x => x.voiceURI === el.voice.value);
+    if (v){ u.voice = v; u.lang = v.lang; } else { u.lang = el.lang.value; }
+    u.pitch = +el.pitch.value;
+    u.rate = +el.rate.value;
+    u.volume = +el.vol.value;
+    u.onstart = () => { speaking = true; if (rec && listening) { try{ rec.stop(); }catch(e){} } paint(); };
+    const done = () => {
+      speaking = false; paint();
+      if (listening) setTimeout(startRec, 250);
+    };
+    u.onend = done; u.onerror = done;
+    synth.speak(u);
+  }
+
+  /* ---------- Nhận diện giọng ---------- */
+  let rec = null, listening = false, recRunning = false;
+
+  function buildRec(){
+    if (!SR) return;
+    rec = new SR();
+    rec.lang = el.lang.value;
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.onstart = () => { recRunning = true; paint(); };
+    rec.onresult = e => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++){
+        const r = e.results[i];
+        const t = r[0].transcript.trim();
+        if (r.isFinal){
+          if (t){ addHistory(t); el.live.textContent = '“' + t + '”'; if (el.auto.checked) speak(t); }
+        } else {
+          interim += t + ' ';
+        }
+      }
+      if (interim) el.live.textContent = interim.trim() + '…';
+    };
+    rec.onerror = e => {
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+        listening = false;
+        el.live.textContent = 'Chưa được cấp quyền micro. Hãy cho phép micro cho trang này rồi thử lại. (Mở file bằng Chrome/Edge; một số trình duyệt chặn micro khi mở file trực tiếp, khi đó hãy chạy qua localhost hoặc https.)';
+      } else if (e.error === 'no-speech'){
+        /* bỏ qua, sẽ tự khởi động lại */
+      } else if (e.error !== 'aborted'){
+        el.live.textContent = 'Lỗi nhận diện: ' + e.error;
+      }
+      paint();
+    };
+    rec.onend = () => {
+      recRunning = false; paint();
+      if (listening && !speaking) setTimeout(startRec, 200);
+    };
+  }
+  function startRec(){
+    if (!rec || recRunning || speaking || !listening) return;
+    try{ rec.start(); }catch(e){}
+  }
+  function restartRec(){ try{ rec.stop(); }catch(e){} }
+
+  el.mic.addEventListener('click', () => {
+    if (!SR) return;
+    if (!rec) buildRec();
+    listening = !listening;
+    if (listening){ startRec(); el.live.textContent = 'Hãy nói đi, tôi đang nghe.'; }
+    else { try{ rec.stop(); }catch(e){} synth.cancel(); speaking = false; el.live.textContent = 'Đã tắt micro.'; }
+    paint();
+  });
+
+  function paint(){
+    el.mic.classList.toggle('on', listening && !speaking);
+    el.mic.classList.toggle('speaking', speaking);
+    el.mic.setAttribute('aria-label', listening ? 'Tắt micro' : 'Bật micro');
+    el.status.textContent = speaking ? 'Đang nhại lại…' : listening ? 'Đang nghe' : 'Đang tắt';
+  }
+
+  /* ---------- Gõ chữ ---------- */
+  $('speakTyped').onclick = () => { const t = el.typed.value; if (t.trim()){ addHistory(t.trim()); speak(t); } };
+  $('stopBtn').onclick = () => { synth.cancel(); speaking = false; paint(); };
+  el.typed.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); $('speakTyped').click(); } });
+
+  /* ---------- Lịch sử ---------- */
+  let history = [];
+  function addHistory(t){
+    history.unshift(t); history = history.slice(0, 30); renderHist();
+  }
+  function renderHist(){
+    el.hist.innerHTML = '';
+    el.empty.classList.toggle('hide', history.length > 0);
+    history.forEach(t => {
+      const li = document.createElement('li');
+      const s = document.createElement('span'); s.textContent = t;
+      const b = document.createElement('button'); b.className = 'btn ghost'; b.textContent = 'Đọc lại';
+      b.onclick = () => speak(t);
+      li.append(s, b); el.hist.appendChild(li);
+    });
+  }
+  $('clearBtn').onclick = () => { history = []; renderHist(); };
+
+  showValues(); paint(); renderHist();
+})();
+</script>
+</body>
+</html>
